@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aletheia-light"
+version = "1.0.0"
+description = "Runtime audit + pre-execution block layer for AI agents, with signed receipts. The kernel of aletheia-core, stripped of SaaS/multi-tenant plumbing."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+authors = [{ name = "Holeyfield33-art" }]
+keywords = ["ai-safety", "agent-security", "audit", "signed-receipts", "runtime-enforcement"]
+
+dependencies = [
+    "cryptography>=41.0.0",
+    "confusable_homoglyphs>=3.2.0",
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.23.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "httpx>=0.24.0",
+]
+
+[project.scripts]
+aletheia-light = "core.__main__:main"
+
+[tool.setuptools]
+packages = ["core", "detectors", "guards", "dashboard"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-q"
