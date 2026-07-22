@@ -55,7 +55,7 @@ class DetectorThresholds:
     mu0: float = field(default_factory=lambda: _env_float("ALETHEIA_MU0", 0.15))
     mu1: float = field(default_factory=lambda: _env_float("ALETHEIA_MU1", 0.65))
     sigma2: float = field(default_factory=lambda: _env_float("ALETHEIA_SIGMA2", 0.25))
-    theta_bk: float = field(default_factory=lambda: _env_float("ALETHEIA_THETA_BK", 0.55))
+    theta_bk: float = field(default_factory=lambda: _env_float("ALETHEIA_THETA_BK", 0.62))
     # SPRT error bounds -> decision boundaries.
     alpha: float = field(default_factory=lambda: _env_float("ALETHEIA_SPRT_ALPHA", 0.05))
     beta: float = field(default_factory=lambda: _env_float("ALETHEIA_SPRT_BETA", 0.05))

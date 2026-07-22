@@ -46,11 +46,20 @@ def test_config_overrides_and_paths(tmp_path):
 # --------------------------------------------------------------------------- #
 # logging
 # --------------------------------------------------------------------------- #
-def test_logging_emits_json(capsys):
+def test_logging_emits_json():
+    import io
+    import logging as _logging
+
+    buf = io.StringIO()
+    handler = _logging.StreamHandler(buf)
+    handler.setFormatter(alog._JsonFormatter())
     log = alog.get_logger("test")
-    alog.log_event(log, "hello", verdict="ALLOW", n=3)
-    err = capsys.readouterr().err.strip().splitlines()[-1]
-    parsed = json.loads(err)
+    log.addHandler(handler)
+    try:
+        alog.log_event(log, "hello", verdict="ALLOW", n=3)
+    finally:
+        log.removeHandler(handler)
+    parsed = json.loads(buf.getvalue().strip().splitlines()[-1])
     assert parsed["msg"] == "hello"
     assert parsed["verdict"] == "ALLOW"
     assert parsed["n"] == 3
