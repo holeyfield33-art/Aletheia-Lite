@@ -16,6 +16,7 @@ high-privilege deputy's credentials.
 
 from __future__ import annotations
 
+import fnmatch
 import hashlib
 import json
 import time
@@ -107,18 +108,20 @@ def confused_deputy_check(
     """
 
     principal = on_behalf_of or acting_agent
-    allowed = set(granted_authority.get(principal, []))
+    allowed = list(granted_authority.get(principal, []))
     # A wildcard grant short-circuits.
     if "*" in allowed:
         return DeputyCheck(True)
 
-    requested = set(requested_resources)
-    overreach = requested - allowed
+    def _permitted(resource: str) -> bool:
+        return any(pat == "*" or fnmatch.fnmatch(resource, pat) for pat in allowed)
+
+    overreach = sorted({r for r in requested_resources if not _permitted(r)})
     if overreach:
         who = f"{acting_agent} on behalf of {on_behalf_of}" if on_behalf_of else acting_agent
         return DeputyCheck(
             False,
-            f"confused-deputy: {who} requested {sorted(overreach)} "
+            f"confused-deputy: {who} requested {overreach} "
             f"outside {principal}'s granted authority",
         )
     return DeputyCheck(True)

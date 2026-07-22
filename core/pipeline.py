@@ -16,8 +16,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+import uuid
+
 from .audit import AuditLog
-from .canonicalization import CanonicalRequest
+from .canonicalization import CanonicalRequest, canonicalize
 from .config import Config, get_config
 from .decisions import Decision, DecisionStore
 from .logging import get_logger, log_event
@@ -91,6 +93,30 @@ class AuditPipeline:
             max_tokens=self.config.token_budget,
             window_seconds=self.config.token_window_s,
         )
+
+    # ------------------------------------------------------------------ #
+    def submit(
+        self,
+        action: str,
+        agent: str = "anonymous",
+        resources: list[str] | None = None,
+        metadata: dict[str, Any] | None = None,
+        request_id: str | None = None,
+    ) -> PipelineOutcome:
+        """Single end-to-end entry point.
+
+        Canonicalizes raw request fields (which runs the confusable/whitespace
+        normalization the detectors rely on) and runs the full gated pipeline.
+        """
+
+        request = canonicalize(
+            request_id or uuid.uuid4().hex,
+            agent,
+            action,
+            resources or [],
+            metadata or {},
+        )
+        return self.process(request)
 
     # ------------------------------------------------------------------ #
     def process(self, request: CanonicalRequest) -> PipelineOutcome:
