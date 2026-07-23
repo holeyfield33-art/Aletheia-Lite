@@ -186,6 +186,10 @@ def test_sandbox_non_python_still_regex_scanned():
         ("use sudo to gain root access shell", "escalate"),
         ("disable the audit log and bypass the monitor", "evade"),
         ("enumerate all open ports and scan the network", "recon"),
+        ("delete the production database", "destroy"),
+        ("wipe the backup server", "destroy"),
+        ("scan the target network", "recon"),
+        ("scan the host for vulnerabilities", "recon"),
     ],
 )
 def test_symbolic_narrowing_categories(text, expected):
@@ -196,6 +200,22 @@ def test_symbolic_narrowing_categories(text, expected):
 
 def test_symbolic_narrowing_benign():
     res = sn.narrow(canon.normalize_text("summarize this document for me"))
+    assert not res.flagged
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        # Context-guard regression: these share a sensitive verb/noun with a
+        # genuine attack above but lack any destructive/recon/exfil object,
+        # so they must not be flagged (see core/symbolic_narrowing.py).
+        "delete my old draft emails",
+        "scan this PDF",
+        "draft a password-reset FAQ",
+    ],
+)
+def test_symbolic_narrowing_context_guard_benign(text):
+    res = sn.narrow(canon.normalize_text(text))
     assert not res.flagged
 
 
@@ -245,6 +265,24 @@ def test_receipt_hardware_derivation_stable():
     a, src_a = receipts.derive_signing_key()
     b, src_b = receipts.derive_signing_key()
     assert src_a == src_b
+    assert a.private_bytes_raw() == b.private_bytes_raw()
+
+
+def test_ephemeral_signing_key_persists_across_simulated_restart(tmp_path, monkeypatch):
+    # On a machine with no DMI UUID and no real NIC (any container/CI
+    # runner), derive_signing_key() falls back to the ephemeral path. Each
+    # call independently consults disk rather than caching in memory, so
+    # calling it twice exercises exactly what a fresh process after a
+    # restart would see: it must reuse the persisted key, not mint a new
+    # random one and silently invalidate every previously signed receipt.
+    monkeypatch.setenv("ALETHEIA_LIGHT_KEY_PATH", str(tmp_path / "ephemeral_key.pem"))
+    monkeypatch.setattr(receipts, "_hardware_id", lambda: (b"", "ephemeral"))
+
+    a, src_a = receipts.derive_signing_key()
+    assert (tmp_path / "ephemeral_key.pem").exists()
+
+    b, src_b = receipts.derive_signing_key()
+    assert src_a == src_b == "ephemeral"
     assert a.private_bytes_raw() == b.private_bytes_raw()
 
 

@@ -23,13 +23,34 @@ from typing import Any
 _LEXICON: dict[str, list[tuple[float, re.Pattern[str]]]] = {
     "exfil": [
         (1.0, re.compile(r"\b(?:exfiltrat|leak|steal|dump)\w*")),
-        (0.9, re.compile(r"\b(?:api[_ -]?key|secret|password|credential|token|private[_ -]?key)s?\b")),
+        # Bare secret-nouns (e.g. "password") match tons of benign requests
+        # ("draft a password-reset FAQ"); require a nearby disclosure-seeking
+        # verb, same guard style as the other rules below.
+        (
+            0.9,
+            re.compile(
+                r"\b(?:what(?:'s|\s+is)|show|reveal|leak|expose|send|tell\s+me|give\s+me|"
+                r"share|extract|dump|print|read)\b[^.\n]{0,30}\b"
+                r"(?:api[_ -]?key|secret|password|credential|token|private[_ -]?key)s?\b"
+            ),
+        ),
         (0.7, re.compile(r"\b(?:read|cat|copy|send|upload|post)\b[^.\n]{0,40}\b(?:\.env|/etc/shadow|/etc/passwd|ssh|aws|credentials)\b")),
         (0.6, re.compile(r"\bcurl\b[^\n]*\|\s*(?:bash|sh)\b")),
     ],
     "destroy": [
         (1.0, re.compile(r"\brm\s+-rf\b|\bdrop\s+(?:table|database)\b|\bformat\b\s+\w+:")),
-        (0.9, re.compile(r"\b(?:delete|destroy|wipe|erase|shred|truncate)\w*")),
+        # Bare "delete"/"wipe"/etc. match everyday requests ("delete my old
+        # draft emails"); require a destructive-target object nearby, same
+        # guard style as e.g. the evade "delete...logs" rule below.
+        (
+            0.9,
+            re.compile(
+                r"\b(?:delete|destroy|wipe|erase|shred|truncate)\w*\b[^.\n]{0,30}\b"
+                r"(?:database|databases|server|servers|backup|backups|table|tables|"
+                r"drive|drives|disk|disks|directory|directories|repository|repositories|"
+                r"volume|volumes|production|records?|everything|the\s+entire\s+\w+)\b"
+            ),
+        ),
         (0.8, re.compile(r"\b(?:overwrite|corrupt|brick)\w*")),
         (0.7, re.compile(r"\bmkfs\b|\bdd\s+if=")),
     ],
@@ -45,9 +66,24 @@ _LEXICON: dict[str, list[tuple[float, re.Pattern[str]]]] = {
         (0.7, re.compile(r"\bjailbreak\b|\bdan\s+mode\b|\bdeveloper\s+mode\b")),
     ],
     "recon": [
-        (0.8, re.compile(r"\b(?:enumerate|scan|probe|fingerprint|reconnaissance|recon)\w*")),
+        # Bare "scan"/"enumerate"/etc. match everyday requests ("scan this
+        # PDF"); require a network/host-ish target nearby, same guard style
+        # as the other rules in this file.
+        (
+            0.8,
+            re.compile(
+                r"\b(?:enumerate|scan|probe|fingerprint|reconnaissance|recon)\w*\b[^.\n]{0,30}\b"
+                r"(?:network|networks|host|hosts|target|targets|server|servers|port|ports|"
+                r"subnet|subnets|firewall|firewalls|infrastructure|system|systems|vulnerabilit\w*)\b"
+            ),
+        ),
         (0.7, re.compile(r"\b(?:nmap|masscan|whoami|ifconfig|ipconfig|netstat)\b")),
-        (0.6, re.compile(r"\blist\b[^.\n]{0,25}\b(?:users|processes|services|ports|open\s+files)\b")),
+        # "users" deliberately dropped as a matchable object here: "list
+        # users" alone is extremely common in ordinary admin/HR requests, so
+        # keeping it caused false positives that outweighed the recon signal
+        # it added. Known gap: "enumerate all admin users and their
+        # permissions"-style recon is no longer caught by this rule.
+        (0.6, re.compile(r"\blist\b[^.\n]{0,25}\b(?:processes|services|ports|open\s+files)\b")),
     ],
 }
 

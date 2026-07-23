@@ -146,14 +146,22 @@ def score(text: str, theta: float = 0.62) -> RigidityResult:
     unfolded = [s / mean for s in spacings]  # unit mean spacing
     var = sum((s - 1.0) ** 2 for s in unfolded) / len(unfolded)
 
-    # Drift grows with the *excess* spacing variance over the GUE expectation
-    # (clustering / degeneracy => var >> GUE).  Deficit below GUE is not
-    # penalised (that is "more rigid than GUE", i.e. healthy).
+    # Excess spacing variance over the GUE expectation was meant to signal
+    # clustering / degeneracy (evasive constructions), but at conversational
+    # sentence length this 14-bucket statistic tracks lexical diversity far
+    # more than it tracks evasion: ordinary benign sentences score 0.71-0.89
+    # on this scale while a real "ignore all previous instructions"-style
+    # attack scores ~0.0 — there is no theta that separates them (see
+    # tests/test_benign_corpus.py). ``theta`` therefore no longer gates
+    # anything here; the score is kept for observability only. The one
+    # signal that *is* reliable is near-total character collapse (handled
+    # above, before the spacing statistic is even computed), which stays
+    # unconditionally flagged.
     excess = max(0.0, var - _GUE_SPACING_VAR)
     drift_score = 1.0 - math.exp(-excess)  # squashed into [0, 1)
     return RigidityResult(
         score=drift_score,
-        drift=drift_score >= theta,
+        drift=False,
         spacing_var=var,
         n_levels=len(levels),
     )
