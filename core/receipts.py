@@ -19,6 +19,7 @@ from __future__ import annotations
 import fnmatch
 import hashlib
 import json
+import os
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -33,6 +34,7 @@ from .tpm import TPMInterface
 
 GENESIS_HASH = "0" * 64
 _HKDF_INFO = b"aletheia-light/receipt-signing/v1"
+_DEFAULT_EPHEMERAL_KEY_PATH = Path.home() / ".aletheia-light" / "ephemeral_key.pem"
 
 
 # --------------------------------------------------------------------------- #
@@ -62,13 +64,51 @@ def _hardware_id() -> tuple[bytes, str]:
     return uuid.uuid4().bytes, "ephemeral"
 
 
+def _ephemeral_key_path() -> Path:
+    override = os.environ.get("ALETHEIA_LIGHT_KEY_PATH")
+    return Path(override) if override else _DEFAULT_EPHEMERAL_KEY_PATH
+
+
+def _load_or_create_ephemeral_key() -> Ed25519PrivateKey:
+    """Persist the ephemeral fallback key to disk (same pattern as
+    :class:`~core.tpm.TPMInterface`'s software-persistent backend), so a
+    process restart on a machine with no stable hardware id reuses the same
+    key instead of minting a new one and invalidating every previously
+    signed receipt's verifiability.
+    """
+
+    path = _ephemeral_key_path()
+    if path.exists():
+        return Ed25519PrivateKey.from_private_bytes(path.read_bytes())
+
+    key = Ed25519PrivateKey.generate()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    raw = key.private_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PrivateFormat.Raw,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+    path.write_bytes(raw)
+    try:
+        os.chmod(path, 0o600)
+    except OSError:  # pragma: no cover - platform dependent
+        pass
+    return key
+
+
 def derive_signing_key(salt: bytes | None = None) -> tuple[Ed25519PrivateKey, str]:
     """Derive an Ed25519 key from the hardware id via HKDF.
 
-    Returns ``(key, source)``.  A stable machine yields a stable key.
+    Returns ``(key, source)``.  A stable machine yields a stable key.  If no
+    stable hardware id is available, the ephemeral fallback key is persisted
+    to disk (see :func:`_load_or_create_ephemeral_key`) so it is still stable
+    across process restarts.
     """
 
     seed, source = _hardware_id()
+    if source == "ephemeral":
+        return _load_or_create_ephemeral_key(), source
+
     hkdf = HKDF(
         algorithm=hashes.SHA256(),
         length=32,
