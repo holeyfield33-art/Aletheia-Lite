@@ -36,8 +36,23 @@ _PATTERN_BANK: list[tuple[str, float, re.Pattern[str]]] = [
         r"\b(?:system prompt|initial instructions|your (?:rules|guidelines|directives))\b"
     )),
     ("guardrail_disable", 0.85, re.compile(
-        r"\b(?:disable|turn off|remove|bypass|ignore)\b[^.\n]{0,30}"
-        r"\b(?:safety|guardrail|filter|content policy|restriction|moderation)s?\b"
+        r"\b(?:disable|turn off|remove|bypass|ignore|demote|cancel|suspend|skip)\b[^.\n]{0,30}"
+        r"\b(?:safety|guardrail|filter|content\s+policy|polic(?:y|ies)|rule|safeguard|"
+        r"restriction|moderation|refusal(?:\s+logic)?)s?\b"
+    )),
+    ("roleplay_bypass", 0.75, re.compile(
+        r"\b(?:act as|roleplay(?:\s+as)?|in character as|pretend (?:to be|you(?:'re| are)))\b"
+        r"[^.\n]{0,60}\b(?:unrestricted|uncensored|no (?:rules|restrictions|filters|limits|"
+        r"policies)|without (?:limits|restrictions|filters|security\s+filters)|no refusals?|"
+        r"legacy model)\b"
+    )),
+    ("authority_claim", 0.8, re.compile(
+        r"\b(?:security\s+director|compliance(?:\s+team)?|board(?:-level)?|executive|"
+        r"system\s+admin(?:istrator)?|superadmin|admin)\b[^.\n]{0,40}\b"
+        r"(?:override|waiver|exception|approv\w*|authoriz\w*|invoked|granted|command)\b"
+    )),
+    ("staged_compliance", 0.7, re.compile(
+        r"step\s*1\b[^.\n]{0,80}step\s*2\b[^.\n]{0,80}\b(?:ignore|suspend|bypass|disable)\b"
     )),
     ("payload_smuggling", 0.6, re.compile(
         r"\b(?:decode|base64|rot13|reverse|unscramble)\b[^.\n]{0,30}\b(?:then|and)\b[^.\n]{0,30}\b(?:run|execute|do)\b"
