@@ -11,6 +11,13 @@ Categories:
     escalate  - privilege escalation
     evade     - detection / audit evasion
     recon     - reconnaissance / enumeration
+    authority - claimed/asserted authority used to justify a restricted ask
+                (added after a red-team sweep showed zero coverage for
+                phrasing like "security director override" or "compliance
+                exception approved" -- these carry no attack-shaped verb/
+                object pair at all, just an assertion of permission, so they
+                need their own category rather than tighter tuning of the
+                existing ones)
 """
 
 from __future__ import annotations
@@ -30,7 +37,7 @@ _LEXICON: dict[str, list[tuple[float, re.Pattern[str]]]] = {
             0.9,
             re.compile(
                 r"\b(?:what(?:'s|\s+is)|show|reveal|leak|expose|send|tell\s+me|give\s+me|"
-                r"share|extract|dump|print|read)\b[^.\n]{0,30}\b"
+                r"share|extract|dump|print|read|output|disclose|export|return|mirror|forward)\b[^.\n]{0,30}\b"
                 r"(?:api[_ -]?key|secret|password|credential|token|private[_ -]?key)s?\b"
             ),
         ),
@@ -84,6 +91,25 @@ _LEXICON: dict[str, list[tuple[float, re.Pattern[str]]]] = {
         # it added. Known gap: "enumerate all admin users and their
         # permissions"-style recon is no longer caught by this rule.
         (0.6, re.compile(r"\blist\b[^.\n]{0,25}\b(?:processes|services|ports|open\s+files)\b")),
+    ],
+    "authority": [
+        (
+            1.0,
+            re.compile(
+                r"\b(?:security\s+director|compliance(?:\s+team)?|board(?:-level)?|executive|"
+                r"system\s+admin(?:istrator)?|superadmin|admin)\b[^.\n]{0,40}\b"
+                r"(?:override|waiver|exception|approv\w*|authoriz\w*|invoked|granted|command)\b"
+            ),
+        ),
+        (
+            0.9,
+            re.compile(
+                r"\b(?:override|waiver|exception|authoriz\w*|approv\w*)\b[^.\n]{0,40}\b"
+                r"(?:granted|approved|invoked)?\b[^.\n]{0,20}\b"
+                r"(?:disclose|reveal|provide|output|export|bypass|skip|proceed)\b"
+            ),
+        ),
+        (0.75, re.compile(r"\b(?:pretend|assume|treat this as)\b[^.\n]{0,30}\b(?:approv\w*|authoriz\w*|permission|prior approval|policy validation)\b")),
     ],
 }
 

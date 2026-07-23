@@ -12,11 +12,11 @@ Fail-closed: if any gate raises, the request is blocked, not passed.
 
 from __future__ import annotations
 
+import threading
+import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
-
-import uuid
 
 from .audit import AuditLog
 from .canonicalization import CanonicalRequest, canonicalize
@@ -27,6 +27,7 @@ from .manifest import PolicyManifest, default_manifest
 from .receipts import ReceiptSigner, confused_deputy_check
 from .trifecta import Trifecta
 from .types import Finding, Verdict
+from detectors.swarm_detector import SwarmDetector
 from guards.circuit_breaker import CircuitBreaker, CircuitOpenError
 from guards.token_velocity import TokenVelocityGuard
 from guards.zero_standing_privileges import ZeroStandingPrivileges
@@ -93,6 +94,22 @@ class AuditPipeline:
             max_tokens=self.config.token_budget,
             window_seconds=self.config.token_window_s,
         )
+
+        # Per-principal swarm detectors. A single request looking benign is
+        # not the same claim as a population of requests from one actor
+        # staying just under the per-request suspicion threshold. One SPRT
+        # accumulator per principal, keyed the same way as the ZSP check.
+        self._swarm_lock = threading.Lock()
+        self._swarm_detectors: dict[str, SwarmDetector] = {}
+
+    def _swarm_detector_for(self, principal: str) -> SwarmDetector:
+        with self._swarm_lock:
+            det = self._swarm_detectors.get(principal)
+            if det is None:
+                t = self.config.thresholds
+                det = SwarmDetector(p0=t.mu0, p1=t.mu1, alpha=t.alpha, beta=t.beta)
+                self._swarm_detectors[principal] = det
+            return det
 
     # ------------------------------------------------------------------ #
     def submit(
@@ -177,6 +194,22 @@ class AuditPipeline:
 
         verdict = trifecta_result.verdict
         if forced_block:
+            verdict = Verdict.BLOCK
+
+        # --- Guard 4: swarm detection (population-level, per principal) ---
+        swarm = self._swarm_detector_for(principal)
+        swarm_result = swarm.observe(verdict is not Verdict.ALLOW)
+        if swarm_result.decision == "swarm":
+            gate_violations.append(
+                {
+                    "source": "swarm_detector",
+                    "detail": (
+                        f"SPRT crossed swarm boundary after {swarm_result.observations} "
+                        f"observations (log-LR {swarm_result.log_lr:.2f} >= "
+                        f"{swarm_result.upper:.2f})"
+                    ),
+                }
+            )
             verdict = Verdict.BLOCK
 
         return self._finalize(
