@@ -8,7 +8,7 @@ The supported release line is Aletheia Lite `1.0.x`.
 
 Please report suspected vulnerabilities privately through the repository's
 GitHub Security Advisories page:
-https://github.com/holeyfield33-art/Aletheia-Lite/security/advisories/new
+[report a vulnerability privately](https://github.com/holeyfield33-art/Aletheia-Lite/security/advisories/new).
 
 Include the affected version, reproduction steps, impact, and any proposed
 mitigation. Do not include secrets or live credentials in a report.

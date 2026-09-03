@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import hmac
 import html
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Response
@@ -115,10 +116,10 @@ def _render_html(rows: list[dict[str, Any]], stats: dict[str, Any]) -> str:
         "<th>reason</th><th>request_id</th></tr>"
     )
     body_rows = []
-    import datetime
-
     for r in rows:
-        ts = datetime.datetime.utcfromtimestamp(r["timestamp"]).strftime("%Y-%m-%d %H:%M:%S")
+        ts = datetime.fromtimestamp(r["timestamp"], tz=timezone.utc).strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
         color = _VERDICT_COLOR.get(r["verdict"], "#57606a")
         body_rows.append(
             "<tr>"

@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .audit import AuditLog
-from .config import load_config
+from .config import DetectorThresholds, load_config
 from .decisions import DecisionStore
 from .manifest import PolicyManifest
 from .pipeline import AuditPipeline
@@ -22,7 +22,30 @@ AGENT = "demo-agent"
 
 
 def _make_pipeline(data_dir: Path) -> AuditPipeline:
-    config = load_config(data_dir=data_dir)
+    config = load_config(
+        data_dir=data_dir,
+        audit_db="audit.sqlite",
+        decisions_db="decisions.sqlite",
+        key_dir="keys",
+        manifest_path="",
+        dashboard_token="",
+        dashboard_host="127.0.0.1",
+        dashboard_port=8787,
+        rate_limit_max=60,
+        rate_limit_window_s=60.0,
+        token_budget=100_000,
+        token_window_s=60.0,
+        breaker_max_failures=5,
+        breaker_reset_s=30.0,
+        thresholds=DetectorThresholds(
+            mu0=0.15,
+            mu1=0.65,
+            sigma2=0.25,
+            theta_bk=0.62,
+            alpha=0.05,
+            beta=0.05,
+        ),
+    )
     config.ensure_dirs()
     manifest = PolicyManifest(
         version=1,

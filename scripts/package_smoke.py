@@ -4,12 +4,17 @@ from __future__ import annotations
 
 import subprocess
 import sys
+from pathlib import Path
 
 
 def main() -> int:
-    subprocess.run(["aletheia-lite", "demo", "--json"], check=True)
+    cli_name = "aletheia-lite.exe" if sys.platform == "win32" else "aletheia-lite"
+    cli = Path(sys.executable).with_name(cli_name)
+    if not cli.is_file():
+        raise RuntimeError(f"installed CLI was not found at {cli}")
+    subprocess.run([str(cli), "demo", "--json"], check=True)
     completed = subprocess.run(
-        ["aletheia-lite", "check", "benign text", "--agent", "release-smoke"],
+        [str(cli), "check", "benign text", "--agent", "release-smoke"],
         check=True,
         capture_output=True,
         text=True,

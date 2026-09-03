@@ -2,8 +2,8 @@
 
 Validated locally on Python 3.12.
 
-- Pytest: 339 passed
-- Coverage: 88.83% overall with `--cov-fail-under=85`
+- Pytest: 340 passed
+- Coverage: 88.27% overall with `--cov-fail-under=85`
 - Critical coverage: pipeline 92%, receipts 86%, audit 90%, manifest 90%,
   circuit breaker 90%, token velocity 88%, zero-standing privileges 95%,
   safety bounds 96%, dashboard 96%

@@ -157,3 +157,18 @@ def test_release_demo_has_four_expected_scenes():
     assert results[2]["violations"]
     assert results[3]["receipt_chain"] == "VALID"
     assert results[3]["tampered_copy"] == "INVALID"
+
+
+def test_release_demo_ignores_environment_overrides(monkeypatch):
+    monkeypatch.setenv("ALETHEIA_AUDIT_DB", "operator-ledger.sqlite")
+    monkeypatch.setenv("ALETHEIA_DECISIONS_DB", "operator-decisions.sqlite")
+    monkeypatch.setenv("ALETHEIA_TOKEN_BUDGET", "1")
+    monkeypatch.setenv("ALETHEIA_MU0", "0.9")
+    monkeypatch.setenv("ALETHEIA_MU1", "0.91")
+
+    results = run_demo()
+
+    assert results[0]["verdict"] == "ALLOW"
+    assert results[1]["verdict"] == "BLOCK"
+    assert results[2]["verdict"] == "BLOCK"
+    assert results[3]["receipt_chain"] == "VALID"

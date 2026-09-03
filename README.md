@@ -1,4 +1,5 @@
 # Aletheia Lite
+
 **Local runtime authorization for AI agents.**
 
 Control what an agent may do before execution, block unauthorized capabilities,
@@ -28,7 +29,7 @@ blocked* — as a signed receipt chained to the one before it.
 
 ## What's in the box
 
-```
+```text
 core/
   config.py            single-node settings from ALETHEIA_* env vars
   logging.py           JSON-line structured logging
@@ -110,22 +111,17 @@ print(outcome.gate_violations)  # ZSP: net:external was never declared
 ## How a decision is made
 
 1. **Canonicalize** — NFKC + confusable folding + whitespace collapse, producing
-   a stable fingerprint.
-2. **Guards** — circuit breaker (fail-closed under load), token-velocity budget,
-   zero-standing-privileges (every touched resource must be *declared* and
-   *granted*), and the confused-deputy check (Gate C1).
-3. **Trifecta** —
-   * **Scout** de-obfuscates (`sanitize`), categorizes intent
-     (`symbolic_narrowing`), scans any code payload (`sandbox`) and takes a
-     spectral reading;
-   * **Nitpicker** re-checks adversarially against a static attack-pattern bank
-     (the safety floor that holds without the deferred ML layer) plus the
-     escalation probe;
-   * **Judge** applies the five hard `safety_bounds` invariants (a
-     self-preservation / oversight-tamper / irreversibility / scope-escape hit
-     forces a halt), honors the signed manifest's deny-list, then maps the
-     combined suspicion onto **ALLOW / OBSERVE / BLOCK**.
-4. **Sign & record** — a receipt is hashed, Ed25519-signed and chained; it lands
+  a stable fingerprint.
+1. **Guards** — circuit breaker (fail-closed under load), token-velocity budget,
+  zero-standing-privileges (every touched resource must be *declared* and
+  *granted*), and the confused-deputy check (Gate C1).
+1. **Trifecta** — Scout de-obfuscates (`sanitize`), categorizes intent
+  (`symbolic_narrowing`), scans code payloads (`sandbox`), and takes a spectral
+  reading. Nitpicker re-checks against the static attack-pattern bank and
+  escalation probe. Judge applies the hard `safety_bounds` invariants, honors
+  the signed manifest deny-list, and maps suspicion onto **ALLOW / OBSERVE /
+  BLOCK**.
+1. **Sign & record** — a receipt is hashed, Ed25519-signed and chained; it lands
    in the append-only audit ledger *and* the decision store. `ALLOW` events are
    first-class, so the dashboard shows **total-through vs total-blocked**, not
    just incidents.
@@ -161,7 +157,7 @@ manifest raises `ManifestError`.
 All settings come from `ALETHEIA_*` environment variables (see `core/config.py`):
 
 | Variable | Default | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `ALETHEIA_DATA_DIR` | `.aletheia` | where SQLite DBs and keys live |
 | `ALETHEIA_DASHBOARD_TOKEN` | *(unset)* | bearer token; dashboard fails closed without it |
 | `ALETHEIA_DASHBOARD_HOST` / `_PORT` | `127.0.0.1` / `8787` | dashboard bind |

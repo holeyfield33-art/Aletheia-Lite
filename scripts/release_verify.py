@@ -63,13 +63,16 @@ def main() -> int:
         shutil.rmtree(path, ignore_errors=True)
 
     run(sys.executable, "-m", "build")
-    run(sys.executable, "-m", "twine", "check", "dist/*")
+    dist_files = [str(path) for path in (ROOT / "dist").glob("*")]
+    run(sys.executable, "-m", "twine", "check", *dist_files)
     wheel, sdist = inspect_artifacts(version)
 
     with tempfile.TemporaryDirectory(prefix="aletheia-lite-release-") as raw_dir:
         venv = Path(raw_dir) / "venv"
         run(sys.executable, "-m", "venv", str(venv))
-        python = venv / "bin" / "python"
+        python_dir = "Scripts" if os.name == "nt" else "bin"
+        python_name = "python.exe" if os.name == "nt" else "python"
+        python = venv / python_dir / python_name
         run(str(python), "-m", "pip", "install", str(wheel))
         run(str(python), str(ROOT / "scripts" / "package_smoke.py"), cwd=Path(raw_dir))
         run(str(python), "-c", "import core.demo, core.manifest, core.receipts")
