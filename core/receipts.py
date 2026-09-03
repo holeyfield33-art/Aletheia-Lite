@@ -233,6 +233,7 @@ class ReceiptSigner:
         last_hash: str = GENESIS_HASH,
         use_hardware_derivation: bool = True,
     ) -> None:
+        self._key: Ed25519PrivateKey | None
         if use_hardware_derivation and key_path is None:
             self._key, self._source = derive_signing_key()
             self._tpm: TPMInterface | None = None
@@ -249,6 +250,7 @@ class ReceiptSigner:
     def public_key_hex(self) -> str:
         if self._tpm is not None:
             return self._tpm.public_key_hex()
+        assert self._key is not None
         return (
             self._key.public_key()
             .public_bytes(
@@ -261,6 +263,7 @@ class ReceiptSigner:
     def _sign(self, message: bytes) -> bytes:
         if self._tpm is not None:
             return self._tpm.sign(message)
+        assert self._key is not None
         return self._key.sign(message)
 
     def issue(

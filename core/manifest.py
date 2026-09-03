@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PrivateKey,
@@ -78,6 +78,8 @@ def _verify_envelope(envelope: dict[str, Any], trusted_pubkey: str | None) -> di
         raise ManifestError("manifest envelope missing 'policy' or 'signature'")
 
     policy = envelope["policy"]
+    if not isinstance(policy, dict):
+        raise ManifestError("manifest policy must be an object")
     embedded = envelope.get("public_key")
     pubkey_hex = trusted_pubkey or embedded
     if pubkey_hex is None:
@@ -90,7 +92,7 @@ def _verify_envelope(envelope: dict[str, Any], trusted_pubkey: str | None) -> di
         pub.verify(bytes.fromhex(envelope["signature"]), _canonical_bytes(policy))
     except Exception as exc:  # noqa: BLE001 - normalize to ManifestError
         raise ManifestError(f"manifest signature verification failed: {exc}") from exc
-    return policy
+    return cast(dict[str, Any], policy)
 
 
 def load_manifest(

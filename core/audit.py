@@ -72,7 +72,9 @@ class AuditLog:
                 ),
             )
             self._conn.commit()
-            return int(cur.lastrowid)
+            if cur.lastrowid is None:
+                raise RuntimeError("SQLite did not return an audit row ID")
+            return cur.lastrowid
 
     def last_hash(self) -> str:
         """Return the chain head so a restart can continue signing."""

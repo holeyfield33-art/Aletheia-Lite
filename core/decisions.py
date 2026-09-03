@@ -96,7 +96,9 @@ class DecisionStore:
                 ),
             )
             self._conn.commit()
-            return int(cur.lastrowid)
+            if cur.lastrowid is None:
+                raise RuntimeError("SQLite did not return a decision row ID")
+            return cur.lastrowid
 
     @staticmethod
     def _row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
