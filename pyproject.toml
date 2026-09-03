@@ -3,14 +3,25 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "aletheia-light"
+name = "aletheia-lite"
 version = "1.0.0"
-description = "Runtime audit + pre-execution block layer for AI agents, with signed receipts. The kernel of aletheia-core, stripped of SaaS/multi-tenant plumbing."
+description = "Local runtime authorization and signed execution receipts for AI agents."
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
 authors = [{ name = "Holeyfield33-art" }]
-keywords = ["ai-safety", "agent-security", "audit", "signed-receipts", "runtime-enforcement"]
+keywords = ["ai-agent-security", "agent-security", "runtime-authorization", "runtime-security", "ai-security", "zero-standing-privilege", "policy-enforcement", "signed-receipts", "execution-receipts", "agent-governance", "llm-security"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Topic :: Security",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
 
 dependencies = [
     "cryptography>=41.0.0",
@@ -22,11 +33,23 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
+    "pytest-cov>=5.0.0",
     "httpx>=0.24.0",
+    "ruff>=0.6.0",
+    "mypy>=1.11.0",
+    "build>=1.2.0",
+    "twine>=5.1.0",
 ]
 
 [project.scripts]
+aletheia-lite = "core.__main__:main"
 aletheia-light = "core.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/holeyfield33-art/Aletheia-Lite"
+Repository = "https://github.com/holeyfield33-art/Aletheia-Lite"
+Issues = "https://github.com/holeyfield33-art/Aletheia-Lite/issues"
+Documentation = "https://github.com/holeyfield33-art/Aletheia-Lite#readme"
 
 [tool.setuptools]
 packages = ["core", "detectors", "guards", "dashboard"]
@@ -35,3 +58,26 @@ packages = ["core", "detectors", "guards", "dashboard"]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+files = ["core", "detectors", "guards", "dashboard"]
+[[tool.mypy.overrides]]
+module = ["confusable_homoglyphs"]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+branch = true
+source = ["core", "detectors", "guards", "dashboard"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false

@@ -1,9 +1,25 @@
-# aletheia-light
+# Aletheia Lite
+**Local runtime authorization for AI agents.**
 
-A runtime audit + pre-execution block layer for AI agents, with **signed,
-hash-chained receipts** — the kernel of `aletheia-core`, stripped of the SaaS,
-multi-tenant and billing plumbing. Pure Python, SQLite as the single source of
-truth, no web framework in the core detection path.
+Control what an agent may do before execution, block unauthorized capabilities,
+and produce cryptographically verifiable receipts for every decision.
+
+Key properties:
+
+- Local-first
+- Open source
+- Deterministic enforcement
+- ALLOW / OBSERVE / BLOCK
+- Zero-standing-privilege enforcement
+- Confused-deputy protection
+- Signed policy manifests
+- Signed hash-chained execution receipts
+- Sequence-aware swarm detection
+- No hosted service required
+
+Aletheia Lite evaluates proposed actions before they reach an executor. It is a
+local Python and SQLite kernel; it does not claim to prevent every exploit or
+provide universal AI safety.
 
 Every request an agent wants to run is routed **Scout → Nitpicker → Judge**,
 gated by zero-standing-privilege / confused-deputy / rate / circuit-breaker
@@ -62,7 +78,10 @@ python -m core check \
 # 4. prove the audit log hasn't been tampered with
 python -m core verify
 
-# 5. serve the local dashboard (needs a token; ALLOW+BLOCK+OBSERVE all shown)
+# 5. run the deterministic four-scene release demo
+aletheia-lite demo
+
+# 6. serve the local dashboard (needs a token; ALLOW+BLOCK+OBSERVE all shown)
 export ALETHEIA_DASHBOARD_TOKEN="$(openssl rand -hex 16)"
 python -m core dashboard   # -> http://127.0.0.1:8787
 curl -H "Authorization: Bearer $ALETHEIA_DASHBOARD_TOKEN" \
@@ -151,19 +170,31 @@ All settings come from `ALETHEIA_*` environment variables (see `core/config.py`)
 | `ALETHEIA_THETA_BK` | `0.62` | spectral-rigidity drift threshold |
 | `ALETHEIA_MU0` / `_MU1` / `_SIGMA2` | `0.15` / `0.65` / `0.25` | SPRT swarm calibration |
 
-## Tests
+## Verification
 
 ```bash
-pytest            # 88 tests, staged: primitives → detectors/guards → pipeline → dashboard → e2e
+pytest
+python -m build
+python scripts/release_verify.py
+aletheia-lite demo
+aletheia-lite demo --json
 ```
 
-The suite mirrors the build order — each stage's tests gate the next:
+The release gate also checks clean wheel installation, the installed CLI, the
+clean ALLOW path, unauthorized capability BLOCK, sequence behavior, signed
+receipt verification and tamper rejection for both receipts and policy
+manifests. Full release verification: PASS when these commands complete
+successfully.
 
-* `test_stage1_primitives.py` — config, sanitize, sandbox, tpm, receipts, manifest, …
-* `test_stage2_detectors_guards.py` — SPRT, spectral rigidity, safety bounds, breaker, ZSP, …
-* `test_stage3_agents_pipeline.py` — trifecta + the pipeline integration gate
-* `test_stage4_dashboard.py` — auth, rate limit, ALLOW-in-feed, HTML view
-* `test_stage5_end_to_end.py` — one clean + one adversarial request, full path, signed receipts
+The suite mirrors the build order. Stage 1 covers primitives and manifests;
+Stage 2 covers detectors and guards; Stage 3 covers orchestration and storage;
+Stage 4 covers dashboard auth and rate limiting; Stage 5 covers end-to-end
+behavior; Stage 6 covers swarm wiring; Stage 7 covers CI and release regressions.
+
+## Public naming
+
+The canonical distribution and CLI are `aletheia-lite`. The `aletheia-light`
+CLI remains as a temporary compatibility alias for existing users.
 
 ## Scope
 

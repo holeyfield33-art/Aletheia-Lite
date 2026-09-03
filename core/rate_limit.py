@@ -13,6 +13,7 @@ import threading
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass
+from typing import Callable
 
 
 @dataclass
@@ -28,7 +29,7 @@ class RateLimiter:
         self,
         max_requests: int = 60,
         window_seconds: float = 60.0,
-        time_func=time.monotonic,
+        time_func: Callable[[], float] = time.monotonic,
     ) -> None:
         self.max_requests = max_requests
         self.window = window_seconds

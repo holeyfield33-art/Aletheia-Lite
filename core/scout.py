@@ -42,19 +42,22 @@ class Scout:
         # 2. intent categorization
         narrowing = _narrow.narrow(cleartext)
         if narrowing.flagged:
+            category = narrowing.top_category
+            assert category is not None
             sev = min(1.0, 0.3 + 0.15 * narrowing.top_score)
             findings.append(
                 Finding(
                     "scout",
-                    f"intent:{narrowing.top_category}",
-                    f"matched {narrowing.matches.get(narrowing.top_category, [])}",
+                    f"intent:{category}",
+                    f"matched {narrowing.matches.get(category, [])}",
                     sev,
                 )
             )
             suspicion = max(suspicion, sev)
 
         # 3. code payload scan (explicit code in metadata, or code-shaped action)
-        code = request.metadata.get("code") or ""
+        code_value = request.metadata.get("code")
+        code = code_value if isinstance(code_value, str) else ""
         if not code and _looks_like_code(request.action):
             code = request.action
         if code:

@@ -16,7 +16,6 @@ from __future__ import annotations
 import re
 
 from .canonicalization import CanonicalRequest
-from .config import get_config
 from detectors import escalation_probe as _escalation
 from .types import AgentReport, Finding, Verdict
 

@@ -11,7 +11,10 @@ from __future__ import annotations
 import threading
 import time
 from enum import Enum
-from typing import Any
+from typing import Any, Callable, TypeVar
+
+
+Result = TypeVar("Result")
 
 
 class State(str, Enum):
@@ -29,7 +32,7 @@ class CircuitBreaker:
         self,
         max_failures: int = 5,
         reset_timeout: float = 30.0,
-        time_func=time.monotonic,
+        time_func: Callable[[], float] = time.monotonic,
     ) -> None:
         self.max_failures = max_failures
         self.reset_timeout = reset_timeout
@@ -68,7 +71,7 @@ class CircuitBreaker:
                 self._state = State.OPEN
                 self._opened_at = self._time()
 
-    def call(self, func, *args, **kwargs) -> Any:
+    def call(self, func: Callable[..., Result], *args: Any, **kwargs: Any) -> Result:
         """Execute ``func`` under the breaker, updating state on the outcome."""
 
         if not self.allow():

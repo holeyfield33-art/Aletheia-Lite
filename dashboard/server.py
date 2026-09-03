@@ -22,7 +22,7 @@ import hmac
 import html
 from typing import Any
 
-from fastapi import Depends, FastAPI, Header, Query, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from core.config import Config, get_config
@@ -48,7 +48,7 @@ def create_app(
     limiter = rate_limiter or RateLimiter(
         max_requests=cfg.rate_limit_max, window_seconds=cfg.rate_limit_window_s
     )
-    app = FastAPI(title="aletheia-light dashboard", version="1.0.0")
+    app = FastAPI(title="Aletheia Lite dashboard", version="1.0.0")
 
     def _client_key(request: Request) -> str:
         return request.client.host if request.client else "unknown"
@@ -72,9 +72,9 @@ def create_app(
 
     @app.get("/health")
     def health() -> dict[str, Any]:  # unauthenticated liveness probe
-        return {"status": "ok", "service": "aletheia-light"}
+        return {"status": "ok", "service": "aletheia-lite"}
 
-    @app.get("/events")
+    @app.get("/events", response_model=None)
     def events(
         request: Request,
         limit: int = Query(default=50, ge=1, le=1000),
@@ -82,7 +82,7 @@ def create_app(
         accept: str | None = Header(default=None),
         _rl: None = Depends(rate_limit),
         _auth: None = Depends(authenticate),
-    ):
+    ) -> Response:
         rows = store.recent(limit=limit, verdict=verdict)
         stats = store.stats()
         if accept and "text/html" in accept.lower():
@@ -100,9 +100,9 @@ def create_app(
     return app
 
 
-def _http(status: int, detail: str, headers: dict[str, str] | None = None):
-    from fastapi import HTTPException
-
+def _http(
+    status: int, detail: str, headers: dict[str, str] | None = None
+) -> HTTPException:
     return HTTPException(status_code=status, detail=detail, headers=headers)
 
 
@@ -135,7 +135,7 @@ def _render_html(rows: list[dict[str, Any]], stats: dict[str, Any]) -> str:
         f"blocked={stats.get('total_blocked', 0)}"
     )
     return f"""<!doctype html>
-<html><head><meta charset="utf-8"><title>aletheia-light dashboard</title>
+<html><head><meta charset="utf-8"><title>Aletheia Lite dashboard</title>
 <style>
  body{{font-family:-apple-system,Segoe UI,Roboto,sans-serif;margin:2rem;color:#1f2328}}
  h1{{font-size:1.3rem}} .summary{{margin:.5rem 0 1rem;color:#57606a;font-variant-numeric:tabular-nums}}
@@ -144,7 +144,7 @@ def _render_html(rows: list[dict[str, Any]], stats: dict[str, Any]) -> str:
  th{{background:#f6f8fa}} code{{font-size:.8rem;color:#57606a}}
 </style></head>
 <body>
-<h1>aletheia-light — decisions</h1>
+<h1>Aletheia Lite - decisions</h1>
 <div class="summary">{summary}</div>
 <table>{header}{''.join(body_rows)}</table>
 </body></html>"""

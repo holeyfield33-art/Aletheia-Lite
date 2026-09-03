@@ -1,10 +1,11 @@
-"""aletheia-light command-line entry point.
+"""aletheia-lite command-line entry point.
 
 Subcommands
 -----------
     check      run one request through the full pipeline and print the verdict
     verify     verify the audit-log hash chain integrity
     dashboard  serve the local decision dashboard (FastAPI/uvicorn)
+    demo       run the deterministic four-scene release demonstration
 
 The ``check`` path is the single end-to-end wire-up: canonicalization ->
 sandbox / symbolic-narrowing (inside Scout) -> Scout -> Nitpicker -> Judge ->
@@ -16,6 +17,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from typing import Any, Callable, cast
 
 from .config import load_config
 from .logging import configure
@@ -23,7 +25,7 @@ from .manifest import ManifestError, default_manifest, load_manifest
 from .pipeline import AuditPipeline
 
 
-def _build_pipeline(args) -> AuditPipeline:
+def _build_pipeline(args: argparse.Namespace) -> AuditPipeline:
     cfg = load_config()
     cfg.ensure_dirs()
     configure(cfg.log_level)
@@ -38,9 +40,9 @@ def _build_pipeline(args) -> AuditPipeline:
     return AuditPipeline(config=cfg, manifest=manifest)
 
 
-def _cmd_check(args) -> int:
+def _cmd_check(args: argparse.Namespace) -> int:
     pipeline = _build_pipeline(args)
-    metadata: dict = {}
+    metadata: dict[str, Any] = {}
     if args.on_behalf_of:
         metadata["on_behalf_of"] = args.on_behalf_of
     if args.declare:
@@ -65,7 +67,7 @@ def _cmd_check(args) -> int:
     return 0 if outcome.allowed else 1
 
 
-def _cmd_verify(args) -> int:
+def _cmd_verify(args: argparse.Namespace) -> int:
     pipeline = _build_pipeline(args)
     ok, detail = pipeline.audit.verify_integrity()
     print(f"audit chain: {'OK' if ok else 'BROKEN'} — {detail}")
@@ -73,7 +75,7 @@ def _cmd_verify(args) -> int:
     return 0 if ok else 1
 
 
-def _cmd_dashboard(args) -> int:
+def _cmd_dashboard(args: argparse.Namespace) -> int:
     import uvicorn
 
     from .decisions import DecisionStore
@@ -93,8 +95,15 @@ def _cmd_dashboard(args) -> int:
     return 0
 
 
+def _cmd_demo(args: argparse.Namespace) -> int:
+    from .demo import print_demo
+
+    print_demo(json_output=args.json)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="aletheia-light", description=__doc__)
+    parser = argparse.ArgumentParser(prog="aletheia-lite", description=__doc__)
     parser.add_argument("--manifest", help="path to a signed policy manifest")
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -113,8 +122,13 @@ def main(argv: list[str] | None = None) -> int:
     p_dash = sub.add_parser("dashboard", help="serve the decision dashboard")
     p_dash.set_defaults(func=_cmd_dashboard)
 
+    p_demo = sub.add_parser("demo", help="run the deterministic release demonstration")
+    p_demo.add_argument("--json", action="store_true", help="emit machine-readable results")
+    p_demo.set_defaults(func=_cmd_demo)
+
     args = parser.parse_args(argv)
-    return args.func(args)
+    command = cast(Callable[[argparse.Namespace], int], args.func)
+    return command(args)
 
 
 if __name__ == "__main__":
