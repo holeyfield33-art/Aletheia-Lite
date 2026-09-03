@@ -30,3 +30,4 @@ jobs:
       - run: >-
           pytest --cov=core --cov=detectors --cov=guards --cov=dashboard
           --cov-report=term-missing --cov-fail-under=85
+      - run: python scripts/release_verify.py
